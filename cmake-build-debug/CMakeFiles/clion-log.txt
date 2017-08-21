@@ -1,0 +1,4 @@
+/home/krec/Documents/clion-2017.2.1/bin/cmake/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/krec/CLionProjects/Conway's_Game_of_Life
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/krec/CLionProjects/Conway's_Game_of_Life/cmake-build-debug

@@ -1,0 +1,3 @@
+/home/krec/CLionProjects/Conway's_Game_of_Life/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/krec/CLionProjects/Conway's_Game_of_Life/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/krec/CLionProjects/Conway's_Game_of_Life/cmake-build-debug/CMakeFiles/Conway_s_Game_of_Life.dir
