@@ -8,15 +8,15 @@ Cell::Cell()
 }
 
 Cell::Cell(int row, int col, State state)
-: m_row         (row),
-  m_col         (col),
-  m_state       (state),
-  m_highestRow  (WindowSize.x / Side),
-  m_highestCol  (WindowSize.y / Side),
-  m_vertices    (sf::Quads, 4)
-{
-    int x = m_row * Side;
-    int y = m_col * Side;
+            : m_row         (row),
+              m_col         (col),
+              m_state       (state),
+              m_highestRow  (WindowSize.x / Side),
+              m_highestCol  (WindowSize.y / Side),
+              m_vertices    (sf::Quads, 4)
+    {
+        int x = m_row * Side;
+        int y = m_col * Side;
 
     m_vertices[0].position      = sf::Vector2f(x, y);                   // Top left
     m_vertices[1].position      = sf::Vector2f(x, y + Side);            // Bottom left
@@ -31,10 +31,9 @@ Cell::Cell(int row, int col, State state)
 
 void Cell::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
-    if(m_state == State::ALIVE)
-    {
+    // If the cell isn't alive don't bother draw it
+    if(this->isAlive())
         target.draw(m_vertices, states);
-    }
 }
 
 int Cell::aliveNeighborsCount(Cell** grid)
