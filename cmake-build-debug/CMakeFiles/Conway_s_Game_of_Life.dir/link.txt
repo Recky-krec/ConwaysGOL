@@ -1,1 +1,0 @@
-/usr/bin/c++   -std=c++11 -Wall -g   CMakeFiles/Conway_s_Game_of_Life.dir/src/Application.cpp.o CMakeFiles/Conway_s_Game_of_Life.dir/src/Button.cpp.o CMakeFiles/Conway_s_Game_of_Life.dir/src/Cell.cpp.o CMakeFiles/Conway_s_Game_of_Life.dir/src/main.cpp.o  -o Conway_s_Game_of_Life -lsfml-system -lsfml-window -lsfml-graphics -lsfml-audio -lsfml-network 
