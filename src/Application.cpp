@@ -1,70 +1,39 @@
 #include "Application.h"
 
-Application::Application()
-: m_width       (640),
-  m_height      (480),
-  m_drawing     (true),
-  m_highest_row (m_width  / Cell::Side),
-  m_highest_col (m_height / Cell::Side),
-  m_window      (sf::VideoMode(640, 480), "Conway's Game of Life")
+#include <cstdlib>
+#include <ctime>
+
+Application::Application(const Config& config)
+:   CONFIG        (config),
+    m_window      ({config.windowWidth, config.windowHeight}, "Conway's Game of Life", sf::Style::Close),
+    m_cellsGrid   (config)
 {
+
+    m_window.setKeyRepeatEnabled (false);
+    m_window.setFramerateLimit   (300);
+
+    m_cells.assign     (CONFIG.highestRow * CONFIG.highestCol, Cell::Dead);
+    m_buttons.assign   (CONFIG.highestRow * CONFIG.highestCol, Button());
+
+
+    // Constructing buttons and randomly making cell dead or alive
     srand(time(0));
-    m_window.setFramerateLimit(10);
 
-
-    // Allocating memory for two dimensional array (m_grid)
-    m_grid = new Cell* [m_highest_row];
-    for(int i = 0; i < m_highest_row + 1; i++)
+    for(int col = 0; col < CONFIG.highestCol; col++)
+    for(int row = 0; row < CONFIG.highestRow; row++)
     {
-        m_grid[i] = new Cell[m_highest_col + 1];
+        m_cells     [getIndex(row, col)] =  rand() % 2 == 0 ? Cell::Dead : Cell::Alive;
+        m_buttons   [getIndex(row, col)] =  Button(row * CONFIG.quadSize, col * CONFIG.quadSize, CONFIG.quadSize);
     }
 
-    // Constructing grid
-    for(int row = 0; row < m_highest_row; row++)
-    {
-        for (int col = 0; col < m_highest_col; col++)
-            m_grid[row][col] = Cell(row, col, Cell::DEAD);//(rand()%2) == 0 ? Cell::DEAD : Cell::ALIVE);
-    }
-
-    // Allocating memory for two dimensional array (m_buttons)
-    m_buttons = new Button* [m_highest_row];
-    for(int i = 0; i <= m_highest_row; i++)
-    {
-        m_buttons[i] = new Button[m_highest_col];
-    }
-
-    // Constructing buttons
-    for(int row = 0; row < m_highest_row; row++)
-    {
-        for (int col = 0; col < m_highest_col; col++)
-            m_buttons[row][col] = Button(row * Cell::Side, col * Cell::Side, Cell::Side);
-    }
-
-
-}
-
-Application::~Application()
-{
-    // Dealocate memory
-    for (int i=0; i<m_highest_row; i++)
-        delete [] m_grid[i];
-    delete [] m_grid;
-
-    for (int i=0; i<m_highest_row; i++)
-        delete [] m_buttons[i];
-    delete [] m_buttons;
 }
 
 void Application::run()
 {
-    sf::Clock clock;
-    sf::Time deltaTime = sf::Time::Zero;
-
     while(m_window.isOpen())
     {
-        deltaTime = clock.restart();
         handleInput();
-        update(deltaTime);
+        update();
         draw();
     }
 }
@@ -74,125 +43,174 @@ void Application::handleInput()
     sf::Event event;
     while(m_window.pollEvent(event))
     {
-        switch(event.type)
+        if(event.type == sf::Event::Closed)
+            m_window.close();
+
+        if(event.type == sf::Event::MouseButtonPressed)
         {
-            case sf::Event::Closed:
-                m_window.close();
-                break;
+            sf::Vector2i mousePos = m_mouse.getPosition(m_window);
 
-            case sf::Event::MouseButtonPressed:
+            for(int col = 0; col < CONFIG.highestCol; col++)
+            for(int row = 0; row < CONFIG.highestRow; row++)
             {
-                sf::Vector2i mousePos = m_mouse.getPosition(m_window);
-
-                for(int row = 0; row < m_highest_row; row++)
+                if(m_buttons[getIndex(row, col)].isUnderMouse(mousePos))
                 {
-                    for (int col = 0; col < m_highest_col; col++)
-                    {
-                        if(m_buttons[row][col].isUnderMouse(mousePos))
-                        {
-                            m_grid[row][col].revive();
-                            std::cout << "ROW: " << row << " COL: "<< col << std::endl;
-                            std::cout << m_grid[row][col].aliveNeighborsCount(m_grid) << std::endl;
-                        }
-                    }
+                    Cell& cell = m_cells[getIndex(row, col)];
+                    cell = cell == Cell::Alive ? Cell::Dead : Cell::Alive;
                 }
-                break;
             }
         }
 
-        switch (event.key.code)
-        {
-            case(sf::Keyboard::Z):
-                m_drawing = true;
-                break;
+        // VVV Keyboard keys assignment VVV
 
-            case(sf::Keyboard::X):
-                m_drawing = false;
-                break;
+        // Toggles drawing cells state
+        if(event.type == sf::Event::KeyReleased && event.key.code == sf::Keyboard::Space)
+        {
+            CONFIG.drawingCells = !CONFIG.drawingCells;
+        }
+
+        // Toggles grid
+        if(event.type == sf::Event::KeyReleased && event.key.code == sf::Keyboard::G)
+        {
+            CONFIG.visibleGrid = !CONFIG.visibleGrid;
+        }
+
+        // Clear all the cells
+        if(event.type == sf::Event::KeyReleased && event.key.code == sf::Keyboard::C)
+        {
+            std::fill(m_cells.begin(), m_cells.end(), Cell::Dead);
         }
 
     }
 }
 
-
-void Application::update(sf::Time dt)
+void Application::update()
 {
-
-    if(!m_drawing)
+    // If i'm not drawing new cells on the board, run the logic.
+    if(!CONFIG.drawingCells)
     {
-        for(int row = 0; row < m_highest_row; row++)
+        std::vector<Cell> newCells(CONFIG.windowWidth * CONFIG.windowHeight);
+
+        for(int col = 0; col < CONFIG.highestCol; col++)
+        for(int row = 0; row < CONFIG.highestRow; row++)
         {
-            for(int col = 0; col < m_highest_col; col++)
+            Cell  cell      = m_cells  [getIndex(row, col)];
+            Cell& newCell   = newCells [getIndex(row, col)];
+
+            int count = aliveNeighborsCount(row, col, m_cells);
+
+            switch(cell)
             {
-                Cell* cell = &m_grid[row][col];
+                case Cell::Alive:
+                    newCell = count < 2 || count > 3 ? Cell::Dead : Cell::Alive;
+                    break;
 
-
-                if(cell->isAlive())
-                {
-                    if( cell->aliveNeighborsCount(m_grid) < 2 || cell->aliveNeighborsCount(m_grid) > 3)
-                    {
-                        cell->kill();
-                    }
-
-
-                    if((cell->aliveNeighborsCount(m_grid) == 2 || cell->aliveNeighborsCount(m_grid) == 3))
-                    {
-                        cell->revive();
-                    }
-
-                }
-
-                if(cell->isDeath())
-                {
-                    if(cell->aliveNeighborsCount(m_grid) == 3)
-                        cell->revive();
-                }
-
-
+                case Cell::Dead:
+                    newCell = count == 3 ? Cell::Alive : Cell::Dead;
+                    break;
             }
-
         }
 
+        m_cells = std::move(newCells);
     }
 
+    m_cellsGrid.update(&m_cells);
 }
 
 void Application::draw()
 {
-    m_window.clear(sf::Color(100, 100, 100));
+    // Clearing the window
+    m_window.clear(CONFIG.backgroundColor);
 
+    // Drawing on the window
 
-    for(int row = 0; row < m_highest_row; row++)
-    {
-        for(int col = 0; col < m_highest_col; col++)
-            m_window.draw(m_grid[row][col]);
-    }
+    m_window.draw(m_cellsGrid);
 
-    drawGrid();
+    if(CONFIG.visibleGrid)
+        drawGrid();
 
+    // Internally swapping buffers
     m_window.display();
 }
 
 void Application::drawGrid()
 {
-    for(int x = 0; x<m_width; x+=Cell::Side)
+    for(int x = 0; x < CONFIG.windowWidth;  x+= CONFIG.quadSize)
+    for(int y = 0; y < CONFIG.windowHeight; y+= CONFIG.quadSize)
     {
-        for(int y = 0; y<m_height; y+=Cell::Side)
+        sf::Vertex horizontalLines[] =
+                {
+                        sf::Vertex(sf::Vector2f(x, y)),
+                        sf::Vertex(sf::Vector2f(x + CONFIG.windowWidth, y))
+                };
+
+        sf::Vertex verticalLines[] =
+                {
+                        sf::Vertex(sf::Vector2f(x, y)),
+                        sf::Vertex(sf::Vector2f(x, y + CONFIG.windowHeight))
+                };
+
+        m_window.draw (horizontalLines, 2, sf::Lines);
+        m_window.draw (verticalLines, 2, sf::Lines);
+    }
+}
+
+int Application::getIndex(int row, int col) const
+{
+    return col * CONFIG.highestRow + row;
+}
+
+int Application::aliveNeighborsCount(int row, int col, std::vector<Cell> cells) const
+{
+    int count = 0;
+
+    // If we are NOT in the leftmost side, we can always check LEFT MIDDLE
+    if(row != 0)
+    {
+        if(cells[getIndex(row - 1, col)] == Cell::Alive) ++count;
+
+        // AND if we are NOT at the uppermost side either, we can also check LEFT TOP
+        if(col != 0)
         {
-            sf::Vertex line[] =
-                    {
-                            sf::Vertex(sf::Vector2f(x, y)),
-                            sf::Vertex(sf::Vector2f(x+m_width, y))
-                    };
+            if(cells[getIndex(row - 1, col -1)] == Cell::Alive) ++count;
+        }
 
-            sf::Vertex line2[] =
-                    {
-                            sf::Vertex(sf::Vector2f(x, y)),
-                            sf::Vertex(sf::Vector2f(x, y+m_height))
-                    };
-
-            m_window.draw(line, 2, sf::Lines);
-            m_window.draw(line2, 2, sf::Lines);
+        // AND if we are NOT at the dowmost side either, we can also check LEFT BOTTOM
+        if(col != CONFIG.highestCol - 1)
+        {
+            if(cells[getIndex(row - 1, col + 1)] == Cell::Alive) ++count;
         }
     }
+
+    // If we are NOT in the rightmost side, we can always check RIGHT MIDDLE
+    if(row != CONFIG.highestRow - 1)
+    {
+        if(cells[getIndex(row + 1, col)] == Cell::Alive) ++count;
+
+        // AND if we are NOT at the uppermost side either, we can also check RIGHT TOP
+        if(col != 0)
+        {
+            if(cells[getIndex(row + 1, col - 1)] == Cell::Alive) ++count;
+        }
+
+        // AND if we are NOT at the dowmost side either, we can also check RIGHT BOTTOM
+        if(col != CONFIG.highestCol - 1)
+        {
+            if(cells[getIndex(row + 1, col + 1)] == Cell::Alive) ++count;
+        }
+    }
+
+    // If we are NOT in the uppermost side, we can always check TOP MIDDLE
+    if(col != 0)
+    {
+        if(cells[getIndex(row, col - 1)] == Cell::Alive) ++count;
+    }
+
+    // If we are NOT in the downmost side, we can always check BOTTOM MIDDLE
+    if(col != CONFIG.highestCol - 1)
+    {
+        if(cells[getIndex(row, col + 1)] == Cell::Alive) ++count;
+    }
+
+    return count;
 }
