@@ -2,6 +2,8 @@
 
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Vertex.hpp>
+#include <SFML/Graphics/Font.hpp>
+#include <SFML/Graphics/Text.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Mouse.hpp>
 #include <SFML/Window/Event.hpp>
@@ -42,9 +44,15 @@ private:
     sf::RenderWindow         m_window;
     sf::Mouse                m_mouse;
 
-    std::vector<Cell>        m_cells;       // mgiht be
-    std::vector<Button>      m_buttons;     // dought it is
+    std::vector<Cell>        m_cells;
+    std::vector<Button>      m_buttons;
 
-    Grid                     m_cellsGrid;   // might be
-    Config                   CONFIG;
+    Grid                     m_cellsGrid;
+    Config                   m_config;
+
+    sf::Font                 m_font;
+    sf::Text                 m_text;
+    sf::Text                 m_genCounter;
+
+    unsigned                 m_generation;
 };

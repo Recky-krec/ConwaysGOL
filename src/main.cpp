@@ -25,6 +25,8 @@ int main()
         std::cout << "Enter cell size: ";
         std::cin >> config.quadSize;
 
+        std::cout << "Enter FPS limit: ";
+        std::cin >> config.FPS;
 
         std::cout << "Would you like to configure the colors? [Y/N]" << std::endl;
         std::cin >> option;
@@ -42,7 +44,7 @@ int main()
         }
         else
         {
-            config.backgroundColor  = sf::Color(50, 125, 255, 255);
+            config.backgroundColor  = sf::Color(100, 100, 100, 255);
             config.cellColor        = sf::Color::Black;
         }
 
@@ -57,13 +59,17 @@ int main()
         config.quadSize         = 8;
         config.backgroundColor  = sf::Color(100, 100, 100, 255);
         config.cellColor        = sf::Color::Black;
+        config.FPS              = 12;
     }
 
     // Those apply for both manual and default configs.
     config.visibleGrid      = false;
     config.drawingCells     = true;
+    config.showInfo         = true;
+
     config.highestRow       = config.windowWidth  / config.quadSize;
     config.highestCol       = config.windowHeight / config.quadSize;
+
 
 
     Application app(config);

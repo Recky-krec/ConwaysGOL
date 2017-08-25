@@ -7,13 +7,15 @@ struct Config
                 windowHeight,
                 quadSize,
                 highestRow,
-                highestCol;
+                highestCol,
+                FPS;
 
     sf::Color   backgroundColor,
                 cellColor;
 
     bool        visibleGrid,
-                drawingCells;
+                drawingCells,
+                showInfo;
 
 };
 
